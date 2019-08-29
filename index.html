@@ -214,7 +214,7 @@
             adiab_line.position.z = -2. - params.T_surf/temp_scale;
             world_objects.add( adiab_line );
             var rot_angle = Math.atan(Gamma_dry_adb/1000.);
-            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-2,-2-params.T_surf/10.), new THREE.Vector3(1,0,0), rot_angle, false);
+            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-2,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
 
             var geometry = new THREE.CylinderGeometry( 0., 0.2, 1, 32 );
             var material = new THREE.MeshStandardMaterial( {color: 0xFFFFFF } );
@@ -242,22 +242,23 @@
                 temp_label.rotation.x = -Math.PI/2.;
                 temp_label.rotation.y = Math.PI/2.;
                 temp_label.position.z = -0.3;
-                temp_label.position.y = 3.0;
+                temp_label.position.y = 4.0;
                 horiz_cone.add(temp_label);
 
-                var geometry = new THREE.TextBufferGeometry( "Current lapse", { font: font, size: fontsize, height: fontsize/5. } );
+                var geometry = new THREE.TextBufferGeometry( "Environmental lapse", { font: font, size: fontsize, height: fontsize/5. } );
                 var material = new THREE.MeshStandardMaterial( { color: 0xdddddd } );
                 var curr_label = new THREE.Mesh( geometry, material );
                 curr_label.rotation.x = -Math.PI/2.;
                 curr_label.rotation.z = Math.PI/2.;
                 curr_label.position.x = -0.4;
                 curr_label.position.z = -2.0;
+                curr_label.position.y = 0.6;
                 horiz_cone.add(curr_label);
 
                 var geometry = new THREE.TextBufferGeometry( "Altitude", { font: font, size: fontsize, height: fontsize/5. } );
                 var z_label = new THREE.Mesh( geometry, material );
                 z_label.position.x = -0.3;
-                z_label.position.y = -1.5;
+                z_label.position.y = -2.5;
                 z_label.rotation.z = Math.PI/2.;
                 vert_cone.add(z_label);
                 z_label.scale.x = 2.;
@@ -324,7 +325,7 @@
                 temp_line.position.z = -2. - params.T_surf/temp_scale;
                 temp_line.rotation.x = 0;
                 var rot_angle = Math.atan(params.Gamma/1000./temp_scale);
-                rotateAboutPoint(temp_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/10.), new THREE.Vector3(1,0,0), rot_angle, false);
+                rotateAboutPoint(temp_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
             }
 
             adiab_line.position.x = 1;
@@ -333,7 +334,7 @@
             adiab_line.position.z = -2. - params.T_surf/temp_scale;
             adiab_line.rotation.x = 0;
             var rot_angle = Math.atan(Gamma_dry_adb/1000./temp_scale);
-            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/10.), new THREE.Vector3(1,0,0), rot_angle, false);
+            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
 
         }
 
