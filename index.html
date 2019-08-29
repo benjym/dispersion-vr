@@ -23,7 +23,8 @@
 	<script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
     <script src="node_modules/three/examples/js/libs/dat.gui.min.js"></script>
     <script src="js/VRController.js"></script>
-    <script src="js/datguivr.js"></script>
+	<script src="js/datguivr_new.js"></script>
+    <!-- <script src="js/datguivr.js"></script> -->
 	<!-- <script src="https://cdn.rawgit.com/dataarts/dat.guiVR/master/build/datguivr.js"></script> -->
     <script src="node_modules/three/examples/js/math/Lut.js"></script>
     <!-- <script type="x-shader/x-vertex" id="vertexshader">
@@ -63,6 +64,10 @@
 
 	<script>
 		var camera, controls, scene, renderer, dolly, gui;
+		var up = 0;
+		var left = 0;
+		var direction = new THREE.Vector3; // controller properties
+		direction.x = 0; direction.y = 0; direction.z = 0;
 		var clock = new THREE.Clock();
         var lut = new THREE.Lut( "cooltowarm", 512 ); // options are rainbow, cooltowarm and blackbody
 		var sphere, floor, stack, grid, inversion_layer
@@ -117,14 +122,14 @@
         var T         = new Float32Array( N_max );
         var v_y       = new Float32Array( N_max );
         // var H = 5; // height of temperature lines
-        const presets = { 'name': [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ] };
+        const presets = { 'Presets': [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ] };
         var preset_settings = [ // FIXME - THESE ARE ALL WRONG!!!!
-            {'name':'Looping',   'u':0.5,'H_stack':10,'Gamma':1000, 'Gamma_inv':1000,'T_stack':0, 'inversion_layer':false, 'turbulence':true}, // strong lapse condition
-            {'name':'Coning',    'u':0.5,'H_stack':10,'Gamma':1,     'Gamma_inv':0,'T_stack':0, 'inversion_layer':false, 'turbulence':false}, // weak lapse condition
-            {'name':'Fanning',   'u':0.5,'H_stack':10,'H_inversion':100,'Gamma':-1000,'inversion_layer':false,'T_stack':0, 'turbulence':false}, // inverse condition
-            {'name':'Lofting',   'u':0.5,'H_stack':10,'H_inversion':9.5 , 'Gamma':-500,'Gamma_inv':100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // inverse below, lapse aloft
-            {'name':'Fumigation','u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1000,'Gamma_inv':-1000,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // lapse below, inversion aloft
-            {'name':'Trapping',  'u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1,  'Gamma_inv':-100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // weak lapse below, inversion aloft
+            {'Presets':'Looping',   'u':0.5,'H_stack':10,'Gamma':1000, 'Gamma_inv':1000,'T_stack':0, 'inversion_layer':false, 'turbulence':true}, // strong lapse condition
+            {'Presets':'Coning',    'u':0.5,'H_stack':10,'Gamma':1,     'Gamma_inv':0,'T_stack':0, 'inversion_layer':false, 'turbulence':false}, // weak lapse condition
+            {'Presets':'Fanning',   'u':0.5,'H_stack':10,'H_inversion':100,'Gamma':-1000,'inversion_layer':false,'T_stack':0, 'turbulence':false}, // inverse condition
+            {'Presets':'Lofting',   'u':0.5,'H_stack':10,'H_inversion':9.5 , 'Gamma':-500,'Gamma_inv':100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // inverse below, lapse aloft
+            {'Presets':'Fumigation','u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1000,'Gamma_inv':-1000,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // lapse below, inversion aloft
+            {'Presets':'Trapping',  'u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1,  'Gamma_inv':-100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // weak lapse below, inversion aloft
         ]
         var debug_VR = false;
         var debug_air_flow = false;
@@ -137,10 +142,11 @@
         if ( VR ) {
             gui = dat.GUIVR.create('Parameters');
             add_gui();
-            gui.position.x = 1;
-            gui.position.z = -1;
+            gui.position.x = 2;
+            gui.position.z = -2;
             gui.rotation.y = -Math.PI/2.;
-            world_objects.add( gui );
+			gui.position.y = 2;
+            scene.add( gui );
         }
         else {
 			gui = new dat.GUI( { width: 500 } );
@@ -248,7 +254,7 @@
                 curr_label.position.z = -2.0;
                 horiz_cone.add(curr_label);
 
-                var geometry = new THREE.TextBufferGeometry( "Height", { font: font, size: fontsize, height: fontsize/5. } );
+                var geometry = new THREE.TextBufferGeometry( "Altitude", { font: font, size: fontsize, height: fontsize/5. } );
                 var z_label = new THREE.Mesh( geometry, material );
                 z_label.position.x = -0.3;
                 z_label.position.y = -1.5;
@@ -390,7 +396,7 @@
 			else { var inv_folder = gui.addFolder('Inversion Layer'); }
             inv_folder.add( params, 'inversion_layer').name('Inversion layer').listen().onChange( function() { inversion_layer.visible = params.inversion_layer; reset_temp_line(); });
             inv_folder.add( params, 'H_inversion').min(0).max(50).step(0.1).name('Height of inv layer (m)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
-            inv_folder.add( params, 'Gamma_inv').min(-1000).max(1000).name('Lapse rate of inv (deg C/km)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
+            inv_folder.add( params, 'Gamma_inv').min(-1000).max(1000).name('Inv lapse rate (C/km)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
 
             if ( debug_air_flow ) {
                 if ( VR ) { var turb_folder = gui; }
@@ -402,7 +408,9 @@
 
 			if ( VR ) { // JUST IN VR MODE
                 // presets = new THREE.Group;
-                gui.add( presets, 'name');
+                //gui.add( presets, 'Presets');
+				gui.add( presets, 'Presets', [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ]).onChange( function() { set_from_presets(); } );
+				//console.log(presets)
 
             }
             else { // JUST IN NON-VR MODE
@@ -416,7 +424,7 @@
                     colour_folder.add( params, 'cmin').min(-10).max(10).name('Min colour').onChange( function() { lut.setMin(params.cmin); });
                     colour_folder.add( params, 'cmax').min(-10).max(10).name('Max colour').onChange( function() { lut.setMax(params.cmax); });
                 }
-                gui.add( presets, 'name', [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ]).name('Presets').onChange( function() { set_from_presets(); } );
+                gui.add( presets, 'Presets', [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ]).name('Presets').onChange( function() { set_from_presets(); } );
             }
         }
 
@@ -560,6 +568,19 @@
 			   	 controller.head = window.camera;
 				 var guiInputHelper = dat.GUIVR.addInputObject( controller ); //  Allow this controller to interact with DAT GUI.
 				 scene.add( guiInputHelper );
+
+				 controller.addEventListener( 'thumbstick axes changed', function( event ) {
+					 up = -event.axes[1]; // distance up on the thumbstick
+					 left = event.axes[0];
+					 event.target.getWorldDirection( direction ); // controller
+					 //console.log(direction);
+				 } );
+
+				 // controller.addEventListener( 'thumbstick axes changed', function( event ) {
+					//  var up = - event.axes[1];
+				 // } );
+				 //THREE.VRController.verbosity = 1;
+				 //THREE.VRController.inspect()
 		    });
 		}
 
@@ -613,6 +634,7 @@
 
 
             if ( VR ) { // get good initial state
+				world_objects.position.x = -1;
                 world_objects.position.y = 2;
                 world_objects.position.z = 1;
                 }
@@ -637,8 +659,17 @@
 
 		function render() {
 			var deltaTime = clock.getDelta();
-            to_make = Math.floor(deltaTime*params.birth_rate);
+			world_objects.position.x += up*deltaTime*direction.x;
+			world_objects.position.y += up*deltaTime*direction.y;
+			world_objects.position.z += up*deltaTime*direction.z;
+
+			// NOTE: need to do something clever here, don't have the brain power tonight
+			// world_objects.position.x += left*deltaTime*direction.z;
+			// world_objects.position.y += left*deltaTime*direction.x;
+			// world_objects.position.z += left*deltaTime*direction.y;
+
             if ( particle_type === 'spheres' ) {
+            	to_make = Math.floor(deltaTime*params.birth_rate);
                 addParticleSphere(to_make);
                 moveParticlesSpheres( deltaTime );
                 cleanParticlesSpheres();
