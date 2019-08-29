@@ -377,20 +377,20 @@
                 inversion_layer.position.y = params.H_inversion - params.H_stack - y_offset; reset_temp_line(); });
             // gui.add( params, 'birth_rate').min(100).max(1000).name('Particle Rate (1/s)').listen();
             gui.add( params, 'D').min(0).max(0.1).step(0.001).name('Diffusivity (m^2/s)').listen();
-            gui.add( params, 'Dx').name('Diffusivity in downwind direction').listen();
+            gui.add( params, 'Dx').name('Diffusivity downwind').listen();
 
             if ( VR ) { var base_layer = gui; }
 			else { var base_layer = gui.addFolder('Temperature effects'); }
             base_layer.add( params, 'adiab').name('Temperature effects').listen().onChange( function() { vert_axis.visible = params.adiab; horiz_axis.visible = params.adiab; temp_line.visible = params.adiab; });
             base_layer.add( params, 'Gamma').min(-1000).max(1000).step(1).name('Lapse rate (deg C/km)').listen().onChange( function() { reset_temp_line(); });
             base_layer.add( params, 'T_surf').min(0).max(50).step(0.1).name('Surface Temp (deg C)').listen().onChange( function() { reset_temp_line(); });
-            base_layer.add( params, 'T_stack').min(-50).max(50).step(0.1).name('Relative Stack Temp (deg C)').listen();
+            base_layer.add( params, 'T_stack').min(-50).max(50).step(0.1).name('Rel Stack Temp (deg C)').listen();
 
 			if ( VR ) { var inv_folder = gui; }
 			else { var inv_folder = gui.addFolder('Inversion Layer'); }
             inv_folder.add( params, 'inversion_layer').name('Inversion layer').listen().onChange( function() { inversion_layer.visible = params.inversion_layer; reset_temp_line(); });
-            inv_folder.add( params, 'H_inversion').min(0).max(50).step(0.1).name('Height of inversion layer (m)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
-            inv_folder.add( params, 'Gamma_inv').min(-1000).max(1000).name('Lapse rate of inversion layer (deg C/km)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
+            inv_folder.add( params, 'H_inversion').min(0).max(50).step(0.1).name('Height of inv layer (m)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
+            inv_folder.add( params, 'Gamma_inv').min(-1000).max(1000).name('Lapse rate of inv (deg C/km)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
 
             if ( debug_air_flow ) {
                 if ( VR ) { var turb_folder = gui; }
