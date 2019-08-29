@@ -98,6 +98,9 @@
 		    root_dir = 'http://www.benjymarks.com/dispersion-vr/';
 		    cache = true;
 		}
+		else if ( window.location.hostname.includes('github') ) {
+		    root_dir = 'https://benjym.github.io/dispersion-vr/';
+		}
 
         var numParticles = 1;
         var D = 0.1; // diffusivity
