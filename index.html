@@ -24,25 +24,7 @@
     <script src="node_modules/three/examples/js/libs/dat.gui.min.js"></script>
     <script src="js/VRController.js"></script>
 	<script src="js/datguivr_new.js"></script>
-    <!-- <script src="js/datguivr.js"></script> -->
-	<!-- <script src="https://cdn.rawgit.com/dataarts/dat.guiVR/master/build/datguivr.js"></script> -->
     <script src="node_modules/three/examples/js/math/Lut.js"></script>
-    <!-- <script type="x-shader/x-vertex" id="vertexshader">
-		#include <color_vertex>
-        attribute float scale;
-		void main() {
-			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			gl_PointSize = scale * ( 300.0 / - mvPosition.z );
-			gl_Position = projectionMatrix * mvPosition;
-		}
-	</script>
-	<script type="x-shader/x-fragment" id="fragmentshader">
-		uniform vec3 color;
-		void main() {
-			if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.475 ) discard;
-			gl_FragColor = vec4( color, 1.0 );
-		}
-	</script> -->
 
     <script id="vertexshader" type="x-shader/x-vertex">
     varying vec3 vColor;
@@ -84,7 +66,10 @@
                       'Gamma_inv':-1000,'T_surf':25, 'T_stack':0,
                       'H_inversion':20, 'adiab':true, 'colour_by':'Relative Temp',
                       'inversion_layer':false, 'cmin': -1, 'cmax': 1,
-                      'turbulence':false, 'I': 0.2, 'omega': 1.0 }
+                      'turbulence':false, 'I': 0.2, 'omega': 1.0,
+                      'wind_type':'Boundary Layer',
+                      // 'wind_type':'Uniform',
+                  }
         lut.setMin(params.cmin);
         lut.setMax(params.cmax);
 
@@ -378,7 +363,7 @@
         }
 
         function add_gui() {
-            gui.add( params, 'u').min(0).max(10).step(0.01).name('Wind speed (m/s)').listen();
+            gui.add( params, 'u').min(0).max(10).step(0.01).name('Wind speed at 10m (m/s)').listen();
             gui.add( params, 'H_stack').min(0.1).max(100).step(0.1).listen().name('Stack Height (m)').onChange( function() { stack.scale.y = params.H_stack;
                 stack.position.y = -params.H_stack/2; grid.position.y = -params.H_stack; floor.position.y = -params.H_stack;
                 inversion_layer.position.y = params.H_inversion - params.H_stack - y_offset; reset_temp_line(); });
@@ -752,6 +737,14 @@
                     var dy = particles.children[i].v_y*dt;
                     particles.children[i].position.y += dy;
                     particles.children[i].T += -Gamma_dry_adb*dy/1000.; // particle cools adiabatically with adiabatic lapse rate
+                    // particles.children[i].scale.set()
+
+                    // // bounce off floor
+                    if ( particles.children[i].position.y < -params.H_stack ) {
+                        particles.children[i].position.y -= 1.5*(params.H_stack + particles.children[i].position.y); // put back in - little bit of dissipation to look nice
+                        particles.children[i].T = params.T_surf -params.Gamma*( particles.children[i].position.y+params.H_stack )/1000.;
+                        particles.children[i].v_y = 0;
+                    }
                     if ( params.colour_by === 'Relative Temp' ) {
                         particles.children[i].material.color = lut.getColor(particles.children[i].T - T_elevation);
                     }
@@ -760,15 +753,6 @@
                     }
                     else if ( params.colour_by === 'Vertical velocity' ) {
                         particles.children[i].material.color = lut.getColor(particles.children[i].v_y);
-                    }
-
-                    // particles.children[i].scale.set()
-
-                    // // bounce off floor
-                    if ( particles.children[i].position.y < -params.H_stack ) {
-                        particles.children[i].position.y -= 1.5*(params.H_stack + particles.children[i].position.y); // put back in - little bit of dissipation to look nice
-                        particles.children[i].T = params.T_surf -params.Gamma*( particles.children[i].position.y+params.H_stack )/1000.;
-                        particles.children[i].v_y = 0;
                     }
                 }
             }
@@ -790,12 +774,16 @@
                 var t = clock.getElapsedTime();
                 positions[ i*3 + 2] += (Math.random() - 0.5)*delta;
                 var dy = (Math.random() - 0.5)*delta;
+                if ( params.wind_type === 'Uniform' ) { u = params.u; }
+                else if ( params.wind_type === 'Boundary Layer' ) {
+                    u = params.u*Math.pow(Math.abs(params.H_stack + positions[i*3 + 1])/10.,0.143); // u = u_{10m}(z)*(z/10)^0.143
+                }
                 if ( params.turbulence ) {
-                    positions[ i*3 ] += params.u*dt*(1. + params.I*Math.cos((positions[ i*3 ] - params.u*t)/params.omega)*Math.sin(positions[ i*3 + 1 ]/params.omega));
-                    dy -= params.u*dt*params.I*Math.sin((positions[ i*3 ] - params.u*t)/params.omega)*Math.cos(positions[ i*3 + 1 ]/params.omega);
+                    positions[ i*3 ] += u*dt*(1. + params.I*Math.cos((positions[ i*3 ] - u*t)/params.omega)*Math.sin(positions[ i*3 + 1 ]/params.omega));
+                    dy -= u*dt*params.I*Math.sin((positions[ i*3 ] - u*t)/params.omega)*Math.cos(positions[ i*3 + 1 ]/params.omega);
                 }
                 else {
-                    positions[ i*3 ] += params.u*dt;
+                    positions[ i*3 ] += u*dt;
                 }
                 positions[ i*3 + 1] += dy;
                 T[i] += -Gamma_dry_adb*dy/1000.; // particle cools adiabatically with adiabatic lapse rate
@@ -824,14 +812,16 @@
                     var dy = v_y[i]*dt;
                     positions[ i*3 + 1 ] += dy;
                     T[i] += -Gamma_dry_adb*dy/1000.; // particle cools adiabatically with adiabatic lapse rate
-                    if ( params.colour_by === 'Relative Temp' ) { c = lut.getColor(T[i] - T_elevation); colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;}
-                    else if ( params.colour_by === 'Temp' ) { colors[i] = lut.getColor(T[i]); }
-                    else if ( params.colour_by === 'Vertical velocity' ) { colors[i] = lut.getColor(v_y[i]); }
                     if ( positions[ i*3 + 1 ] < -params.H_stack ) { // bounce off floor
                         positions[ i*3 + 1 ] -= 1.5*(params.H_stack + positions[ i*3 + 1 ]); // put back in - little bit of dissipation to look nice
-                        T[i] = params.T_surf -params.Gamma*( positions[ i*3 + 1 ]+params.H_stack )/1000.;
+                        T[i] = params.T_surf ;//-params.Gamma*( positions[ i*3 + 1 ]+params.H_stack )/1000.;
                         v_y[i] = 0;
                     }
+                    if ( params.colour_by === 'Relative Temp' ) { c = lut.getColor(T[i] - T_elevation);}
+                    else if ( params.colour_by === 'Temp' ) { c = lut.getColor(T[i]); }
+                    else if ( params.colour_by === 'Vertical velocity' ) { c = lut.getColor(v_y[i]); }
+
+                    colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
                 }
             }
 
