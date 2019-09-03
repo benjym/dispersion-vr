@@ -431,7 +431,9 @@
 
         function set_from_presets() {
             for ( i=0; i<preset_settings.length; i++ ) {
-                if ( presets.name === preset_settings[i].name ) {
+				//console.log(presets.Presets)
+				//console.log(preset_settings[i].Presets)
+                if ( presets.Presets === preset_settings[i].Presets ) {
                     var keys   = Object.keys(preset_settings[i]);
                     var values = Object.values(preset_settings[i])
                     for ( j=0; j<keys.length; j++ ) {
