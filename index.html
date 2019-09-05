@@ -63,7 +63,7 @@
                       'Dx':true, 'H_stack':2.0, 'Gamma':10,
                       'Gamma_inv':-200,'T_surf':25, 'T_stack':0,
                       'H_inversion':20, 'adiab':true, 'colour_by':'Relative Temp',
-                      'inversion_layer':false, 'cmin': -1, 'cmax': 1,
+                      'inversion_layer':false, 'cmin': -0.25, 'cmax': 0.25,
                       'turbulence':false, 'I': 0.2, 'omega': 1.0,
                       'wind_type':'Boundary Layer',
                       // 'wind_type':'Uniform',
@@ -412,7 +412,7 @@
                 if ( colour_options ) {
                     var colour_folder = gui;
                     colour_folder.add( params, 'colour_by', [ 'Relative Temp', 'Temp', 'Vertical velocity' ] ).name('Colour By').onChange( function() {
-                        if ( params.colour_by === 'Relative Temp' ) { params.cmin = -1e-0; params.cmax = 1e-0; }
+                        if ( params.colour_by === 'Relative Temp' ) { params.cmin = -1; params.cmax = 1; }
                         else if ( params.colour_by === 'Temp' ) { params.cmin =0; params.cmax = 50; }
                         else if ( params.colour_by === 'Vertical velocity' ) { params.cmin =-2; params.cmax = 2; }
                     });
@@ -707,15 +707,15 @@
 
                     colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
 
-                    var P = 1e5*Math.exp(-positions[ i*3 + 1]/7000.);
+                    // var P = 1e5*Math.exp(-positions[ i*3 + 1]/7000.);
                     // scales[i] = Math.pow(nR*T[i]/P,0.33333);  // V = nRT/P, d \propto V**0.33;
-                    scales[i] = nR*T[i]/P;  // V = nRT/P - looks a bit better
+                    // scales[i] = nR*T[i]/P;  // V = nRT/P - looks a bit better
 
                 }
             }
 
 			particles.geometry.attributes.position.needsUpdate = true;
-            particles.geometry.attributes.scale.needsUpdate = true;
+            // particles.geometry.attributes.scale.needsUpdate = true;
 			particles.geometry.attributes.color.needsUpdate = true;
         }
 
