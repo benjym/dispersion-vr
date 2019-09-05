@@ -23,8 +23,25 @@
 	<script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
     <script src="node_modules/three/examples/js/libs/dat.gui.min.js"></script>
     <script src="js/VRController.js"></script>
-	<script src="js/datguivr_new.js"></script>
+    <script src="js/datguivr.js"></script>
+	<!-- <script src="https://cdn.rawgit.com/dataarts/dat.guiVR/master/build/datguivr.js"></script> -->
     <script src="node_modules/three/examples/js/math/Lut.js"></script>
+    <!-- <script type="x-shader/x-vertex" id="vertexshader">
+		#include <color_vertex>
+        attribute float scale;
+		void main() {
+			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+			gl_PointSize = scale * ( 300.0 / - mvPosition.z );
+			gl_Position = projectionMatrix * mvPosition;
+		}
+	</script>
+	<script type="x-shader/x-fragment" id="fragmentshader">
+		uniform vec3 color;
+		void main() {
+			if ( length( gl_PointCoord - vec2( 0.5, 0.5 ) ) > 0.475 ) discard;
+			gl_FragColor = vec4( color, 1.0 );
+		}
+	</script> -->
 
     <script id="vertexshader" type="x-shader/x-vertex">
     varying vec3 vColor;
@@ -46,10 +63,6 @@
 
 	<script>
 		var camera, controls, scene, renderer, dolly, gui;
-		var up = 0;
-		var left = 0;
-		var direction = new THREE.Vector3; // controller properties
-		direction.x = 0; direction.y = 0; direction.z = 0;
 		var clock = new THREE.Clock();
         var lut = new THREE.Lut( "cooltowarm", 512 ); // options are rainbow, cooltowarm and blackbody
 		var sphere, floor, stack, grid, inversion_layer
@@ -66,10 +79,7 @@
                       'Gamma_inv':-1000,'T_surf':25, 'T_stack':0,
                       'H_inversion':20, 'adiab':true, 'colour_by':'Relative Temp',
                       'inversion_layer':false, 'cmin': -1, 'cmax': 1,
-                      'turbulence':false, 'I': 0.2, 'omega': 1.0,
-                      'wind_type':'Boundary Layer',
-                      // 'wind_type':'Uniform',
-                  }
+                      'turbulence':false, 'I': 0.2, 'omega': 1.0 }
         lut.setMin(params.cmin);
         lut.setMax(params.cmax);
 
@@ -88,16 +98,13 @@
 		    root_dir = 'http://www.benjymarks.com/dispersion-vr/';
 		    cache = true;
 		}
-		else if ( window.location.hostname.includes('github') ) {
-		    root_dir = 'https://benjym.github.io/dispersion-vr/';
-		}
 
-        var numParticles = 1;
         var D = 0.1; // diffusivity
         // var birth_rate = 100.; // how often to add a particle
         var u = 1.0; // wind velocity
         var Dx = false; // diffusion in downwind direction
         // stack
+        var nR = 1000.; // nR from PV=nRT, sets initial size of particles
         var R = 0.1; // stack radius
         var g = 9.81; // acceleration due to gravity
         var Gamma_dry_adb = 10.0 // deg C / km
@@ -107,38 +114,27 @@
         var T         = new Float32Array( N_max );
         var v_y       = new Float32Array( N_max );
         // var H = 5; // height of temperature lines
-        const presets = { 'Presets': [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ] };
+        var presets = { 'name': '' };
         var preset_settings = [ // FIXME - THESE ARE ALL WRONG!!!!
-            {'Presets':'Looping',   'u':0.5,'H_stack':10,'Gamma':1000, 'Gamma_inv':1000,'T_stack':0, 'inversion_layer':false, 'turbulence':true}, // strong lapse condition
-            {'Presets':'Coning',    'u':0.5,'H_stack':10,'Gamma':1,     'Gamma_inv':0,'T_stack':0, 'inversion_layer':false, 'turbulence':false}, // weak lapse condition
-            {'Presets':'Fanning',   'u':0.5,'H_stack':10,'H_inversion':100,'Gamma':-1000,'inversion_layer':false,'T_stack':0, 'turbulence':false}, // inverse condition
-            {'Presets':'Lofting',   'u':0.5,'H_stack':10,'H_inversion':9.5 , 'Gamma':-500,'Gamma_inv':100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // inverse below, lapse aloft
-            {'Presets':'Fumigation','u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1000,'Gamma_inv':-1000,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // lapse below, inversion aloft
-            {'Presets':'Trapping',  'u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1,  'Gamma_inv':-100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // weak lapse below, inversion aloft
+            {'name':'Looping',   'u':0.5,'H_stack':10,'Gamma':1000, 'Gamma_inv':1000,'T_stack':0, 'inversion_layer':false, 'turbulence':true}, // strong lapse condition
+            {'name':'Coning',    'u':0.5,'H_stack':10,'Gamma':1,     'Gamma_inv':0,'T_stack':0, 'inversion_layer':false, 'turbulence':false}, // weak lapse condition
+            {'name':'Fanning',   'u':0.5,'H_stack':10,'H_inversion':100,'Gamma':-1000,'inversion_layer':false,'T_stack':0, 'turbulence':false}, // inverse condition
+            {'name':'Lofting',   'u':0.5,'H_stack':10,'H_inversion':9.5 , 'Gamma':-500,'Gamma_inv':100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // inverse below, lapse aloft
+            {'name':'Fumigation','u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1000,'Gamma_inv':-1000,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // lapse below, inversion aloft
+            {'name':'Trapping',  'u':0.5,'H_stack':10,'H_inversion':10.5,'Gamma':1,  'Gamma_inv':-100,'T_stack':0,'inversion_layer':true, 'turbulence':false}, // weak lapse below, inversion aloft
         ]
-        var debug_VR = false;
-        var debug_air_flow = false;
-        var colour_options = false;
 
         init();
 		add_renderer();
         add_controllers();
         add_temp_axes();
-        if ( VR ) {
-            gui = dat.GUIVR.create('Parameters');
-            add_gui();
-            gui.position.x = 2;
-            gui.position.z = -2;
-            gui.rotation.y = -Math.PI/2.;
-			gui.position.y = 2;
-            scene.add( gui );
-        }
-        else {
+        if ( !VR ) {
 			gui = new dat.GUI( { width: 500 } );
 			add_gui();
 		}
         if ( particle_type === 'points') { add_particles_points(); }
 		animate();
+        debug_VR = false;
         if ( debug_VR ) {
             add_left_oculus_model(stack);
             add_right_oculus_model(vert_cone);
@@ -168,7 +164,7 @@
             vert_axis.scale.y = 3.;
             vert_axis.position.y = 3./2.-params.H_stack;
             vert_axis.position.z = -2.;
-            world_objects.add( vert_axis );
+            scene.add( vert_axis );
 
             temp_scale = 5.; // m/deg C
             horiz_axis = new THREE.Mesh( geometry, material );
@@ -176,19 +172,19 @@
             horiz_axis.position.y = -params.H_stack;
             horiz_axis.position.z = -2. - params.T_surf/temp_scale/2.;
             horiz_axis.rotation.x = Math.PI/2;
-            world_objects.add( horiz_axis );
+            scene.add( horiz_axis );
 
             temp_line = new THREE.Mesh( geometry, material );
             temp_line.scale.y = H;
             // temp_line.position.y = H/2.-params.H_stack;
             // temp_line.position.z = -2. - params.T_surf/temp_scale;
-            world_objects.add( temp_line );
+            scene.add( temp_line );
 
             top_temp_line = new THREE.Mesh( geometry, material );
             top_temp_line.scale.y = H;
             top_temp_line.position.y = H/2.-params.H_stack;
             top_temp_line.position.z = -2. - params.T_surf/temp_scale;
-            world_objects.add( top_temp_line );
+            scene.add( top_temp_line );
             top_temp_line.visible = params.inversion_layer;
 
             var geometry = new THREE.CylinderGeometry( 0.05, 0.05, 1, 32 );
@@ -197,9 +193,9 @@
             adiab_line.scale.y = H;
             adiab_line.position.y = H/2.-params.H_stack;
             adiab_line.position.z = -2. - params.T_surf/temp_scale;
-            world_objects.add( adiab_line );
+            scene.add( adiab_line );
             var rot_angle = Math.atan(Gamma_dry_adb/1000.);
-            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-2,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
+            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-2,-2-params.T_surf/10.), new THREE.Vector3(1,0,0), rot_angle, false);
 
             var geometry = new THREE.CylinderGeometry( 0., 0.2, 1, 32 );
             var material = new THREE.MeshStandardMaterial( {color: 0xFFFFFF } );
@@ -227,23 +223,22 @@
                 temp_label.rotation.x = -Math.PI/2.;
                 temp_label.rotation.y = Math.PI/2.;
                 temp_label.position.z = -0.3;
-                temp_label.position.y = 4.0;
+                temp_label.position.y = 3.0;
                 horiz_cone.add(temp_label);
 
-                var geometry = new THREE.TextBufferGeometry( "Environmental lapse", { font: font, size: fontsize, height: fontsize/5. } );
+                var geometry = new THREE.TextBufferGeometry( "Current lapse", { font: font, size: fontsize, height: fontsize/5. } );
                 var material = new THREE.MeshStandardMaterial( { color: 0xdddddd } );
                 var curr_label = new THREE.Mesh( geometry, material );
                 curr_label.rotation.x = -Math.PI/2.;
                 curr_label.rotation.z = Math.PI/2.;
                 curr_label.position.x = -0.4;
                 curr_label.position.z = -2.0;
-                curr_label.position.y = 0.6;
                 horiz_cone.add(curr_label);
 
-                var geometry = new THREE.TextBufferGeometry( "Altitude", { font: font, size: fontsize, height: fontsize/5. } );
+                var geometry = new THREE.TextBufferGeometry( "Height", { font: font, size: fontsize, height: fontsize/5. } );
                 var z_label = new THREE.Mesh( geometry, material );
                 z_label.position.x = -0.3;
-                z_label.position.y = -2.5;
+                z_label.position.y = -1.5;
                 z_label.rotation.z = Math.PI/2.;
                 vert_cone.add(z_label);
                 z_label.scale.x = 2.;
@@ -265,16 +260,6 @@
         }
 
         function reset_temp_line() {
-
-            if ( params.Gamma > 0 ) {
-                params.turbulence = true;
-                params.I = 0.2*params.Gamma/1000. // FIXME - this is currently garbage
-
-            }
-            else {
-                params.turbulence = false;
-            }
-
             var H = params.H_stack + 20;
             // vert_axis.scale.y = H;
             vert_axis.position.y = 3./2.-params.H_stack;
@@ -310,7 +295,7 @@
                 temp_line.position.z = -2. - params.T_surf/temp_scale;
                 temp_line.rotation.x = 0;
                 var rot_angle = Math.atan(params.Gamma/1000./temp_scale);
-                rotateAboutPoint(temp_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
+                rotateAboutPoint(temp_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/10.), new THREE.Vector3(1,0,0), rot_angle, false);
             }
 
             adiab_line.position.x = 1;
@@ -319,7 +304,7 @@
             adiab_line.position.z = -2. - params.T_surf/temp_scale;
             adiab_line.rotation.x = 0;
             var rot_angle = Math.atan(Gamma_dry_adb/1000./temp_scale);
-            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
+            rotateAboutPoint(adiab_line,new THREE.Vector3(0,-params.H_stack,-2-params.T_surf/10.), new THREE.Vector3(1,0,0), rot_angle, false);
 
         }
 
@@ -343,7 +328,7 @@
 				positions[ i*3 ]     = i/N_max * X_max; // x
 				positions[ i*3 + 1 ] = 0; // y
 				positions[ i*3 + 2 ] = 0; // z
-				scales[ i ] = 0.25;
+				scales[ i ] = 1.0; // V = nRT/P;
                 v_y[ i ] = 0;
                 T[ i ] = params.T_stack + params.T_surf - params.Gamma*params.H_stack/1000.;
                 colors.push( 1, 1, 1);
@@ -359,81 +344,67 @@
                 vertexColors: THREE.VertexColors
 			} );
 			particles = new THREE.Points( geometry, material );
-			world_objects.add( particles );
+			scene.add( particles );
         }
 
         function add_gui() {
-            gui.add( params, 'u').min(0).max(10).step(0.01).name('Wind speed at 10m (m/s)').listen();
+            gui.add( params, 'u').min(0).max(10).step(0.01).name('Wind speed (m/s)').listen();
             gui.add( params, 'H_stack').min(0.1).max(100).step(0.1).listen().name('Stack Height (m)').onChange( function() { stack.scale.y = params.H_stack;
                 stack.position.y = -params.H_stack/2; grid.position.y = -params.H_stack; floor.position.y = -params.H_stack;
                 inversion_layer.position.y = params.H_inversion - params.H_stack - y_offset; reset_temp_line(); });
             // gui.add( params, 'birth_rate').min(100).max(1000).name('Particle Rate (1/s)').listen();
-            gui.add( params, 'D').min(0).max(0.1).step(0.001).name('Diffusivity (m<sup>2</sup>/s)').listen();
-            gui.add( params, 'Dx').name('Diffusivity downwind').listen();
+            gui.add( params, 'D').min(0).max(0.1).step(0.001).name('Diffusivity (m^2/s)').listen();
+            gui.add( params, 'Dx').name('Diffusivity in downwind direction').listen();
 
             if ( VR ) { var base_layer = gui; }
 			else { var base_layer = gui.addFolder('Temperature effects'); }
             base_layer.add( params, 'adiab').name('Temperature effects').listen().onChange( function() { vert_axis.visible = params.adiab; horiz_axis.visible = params.adiab; temp_line.visible = params.adiab; });
-            base_layer.add( params, 'Gamma').min(-1000).max(1000).step(1).name('Env lapse rate (&circ;C/km)').listen().onChange( function() { reset_temp_line(); });
-            base_layer.add( params, 'T_surf').min(0).max(50).step(0.1).name('Surface Temp (&circ;C)').listen().onChange( function() { reset_temp_line(); });
-            base_layer.add( params, 'T_stack').min(-50).max(50).step(0.1).name('Rel Stack Temp (&circ;C)').listen();
+            base_layer.add( params, 'Gamma').min(-1000).max(1000).step(1).name('Lapse rate (deg C/km)').listen().onChange( function() { reset_temp_line(); });
+            base_layer.add( params, 'T_surf').min(0).max(50).step(0.1).name('Surface Temp (deg C)').listen().onChange( function() { reset_temp_line(); });
+            base_layer.add( params, 'T_stack').min(-50).max(50).step(0.1).name('Relative Stack Temp (deg C)').listen();
 
 			if ( VR ) { var inv_folder = gui; }
 			else { var inv_folder = gui.addFolder('Inversion Layer'); }
             inv_folder.add( params, 'inversion_layer').name('Inversion layer').listen().onChange( function() { inversion_layer.visible = params.inversion_layer; reset_temp_line(); });
-            inv_folder.add( params, 'H_inversion').min(0).max(50).step(0.1).name('Height of inv layer (m)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
-            inv_folder.add( params, 'Gamma_inv').min(-1000).max(1000).name('Inv lapse rate (&circ;C/km)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
+            inv_folder.add( params, 'H_inversion').min(0).max(50).step(0.1).name('Height of inversion layer (m)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
+            inv_folder.add( params, 'Gamma_inv').min(-1000).max(1000).name('Lapse rate of inversion layer (deg C/km)').listen().onChange( function() { inversion_layer.position.y = params.H_inversion - params.H_stack; reset_temp_line(); });
 
-            if ( debug_air_flow ) {
-                if ( VR ) { var turb_folder = gui; }
-                else { var turb_folder = gui.addFolder('Turbulence'); }
-                turb_folder.add( params, 'turbulence').name('Turbulence').listen();
-                turb_folder.add( params, 'I').name('Turbulence intensity').min(0).max(1).step(0.01).listen();
-                turb_folder.add( params, 'omega').name('Eddy length (m)').min(0).max(10).step(0.01).listen();
-            }
+            if ( VR ) { var turb_folder = gui; }
+            else { var turb_folder = gui.addFolder('Turbulence'); }
+            turb_folder.add( params, 'turbulence').name('Turbulence').listen();
+            turb_folder.add( params, 'I').name('Turbulence intensity').min(0).max(1).step(0.01).listen();
+            turb_folder.add( params, 'omega').name('Eddy length (m)').min(0).max(10).step(0.01).listen();
 
-			if ( VR ) { // JUST IN VR MODE
-                // presets = new THREE.Group;
-                //gui.add( presets, 'Presets');
-				gui.add( presets, 'Presets', [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ]).onChange( function() { set_from_presets(); } );
-				//console.log(presets)
+			if ( VR ) { var colour_folder = gui; }
+            else { var colour_folder = gui.addFolder('Colour scale'); }
 
-            }
-            else { // JUST IN NON-VR MODE
-                if ( colour_options ) {
-                    var colour_folder = gui;
-                    colour_folder.add( params, 'colour_by', [ 'Relative Temp', 'Temp', 'Vertical velocity' ] ).name('Colour By').onChange( function() {
-                        if ( params.colour_by === 'Relative Temp' ) { params.cmin = -1e-0; params.cmax = 1e-0; }
-                        else if ( params.colour_by === 'Temp' ) { params.cmin =0; params.cmax = 50; }
-                        else if ( params.colour_by === 'Vertical velocity' ) { params.cmin =-2; params.cmax = 2; }
-                    });
-                    colour_folder.add( params, 'cmin').min(-10).max(10).name('Min colour').onChange( function() { lut.setMin(params.cmin); });
-                    colour_folder.add( params, 'cmax').min(-10).max(10).name('Max colour').onChange( function() { lut.setMax(params.cmax); });
-                }
-                gui.add( presets, 'Presets', [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ]).name('Presets').onChange( function() { set_from_presets(); } );
-            }
-        }
+            colour_folder.add( params, 'colour_by', [ 'Relative Temp', 'Temp', 'Vertical velocity' ] ).name('Colour By').onChange( function() {
+                if ( params.colour_by === 'Relative Temp' ) { params.cmin = -1e-0; params.cmax = 1e-0; }
+                else if ( params.colour_by === 'Temp' ) { params.cmin =0; params.cmax = 50; }
+                else if ( params.colour_by === 'Vertical velocity' ) { params.cmin =-2; params.cmax = 2; }
+            });
+            colour_folder.add( params, 'cmin').min(-10).max(10).name('Min colour').onChange( function() { lut.setMin(params.cmin); });
+            colour_folder.add( params, 'cmax').min(-10).max(10).name('Max colour').onChange( function() { lut.setMax(params.cmax); });
 
-        function set_from_presets() {
-            for ( i=0; i<preset_settings.length; i++ ) {
-				//console.log(presets.Presets)
-				//console.log(preset_settings[i].Presets)
-                if ( presets.Presets === preset_settings[i].Presets ) {
-                    var keys   = Object.keys(preset_settings[i]);
-                    var values = Object.values(preset_settings[i])
-                    for ( j=0; j<keys.length; j++ ) {
-                        params[keys[j]] = values[j];
+            gui.add( presets, 'name', [ 'Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping' ]).name('Presets').onChange( function() {
+                for ( i=0; i<preset_settings.length; i++ ) {
+                    if ( presets.name === preset_settings[i].name ) {
+                        var keys   = Object.keys(preset_settings[i]);
+                        var values = Object.values(preset_settings[i])
+                        for ( j=0; j<keys.length; j++ ) {
+                            params[keys[j]] = values[j];
+                        }
+                        // wipe particles
+                        if ( particle_type === 'spheres') { while ( particles.children.length > 0 ) { particles.remove( particles.children[0] ); } }
+                        else { reset_particle_positions_points(); }
+                        // just in case
+                        stack.scale.y = params.H_stack; stack.position.y = -params.H_stack/2.; floor.position.y = -params.H_stack; grid.position.y = -params.H_stack + 0.01; inversion_layer.position.y = params.H_inversion - params.H_stack;
+                        inversion_layer.visible = params.inversion_layer;
+                        vert_axis.visible = params.adiab; horiz_axis.visible = params.adiab; temp_line.visible = params.adiab;
+                        reset_temp_line();
                     }
-                    // wipe particles
-                    if ( particle_type === 'spheres') { while ( particles.children.length > 0 ) { particles.remove( particles.children[0] ); } }
-                    else { reset_particle_positions_points(); }
-                    // just in case
-                    stack.scale.y = params.H_stack; stack.position.y = -params.H_stack/2.; floor.position.y = -params.H_stack; grid.position.y = -params.H_stack + 0.01; inversion_layer.position.y = params.H_inversion - params.H_stack;
-                    inversion_layer.visible = params.inversion_layer;
-                    vert_axis.visible = params.adiab; horiz_axis.visible = params.adiab; temp_line.visible = params.adiab;
-                    reset_temp_line();
                 }
-            }
+            } );
         }
 
         function add_renderer() {
@@ -546,6 +517,12 @@
 			   	 if ( controller.gamepad.hand === 'left' ) {
 			   		 controller.add(controller1);
                      if ( controller.gamepad.id === 'Oculus Touch (Left)') { add_left_oculus_model(controller); }
+					 gui = dat.GUIVR.create('Parameters');
+					 add_gui();
+					 gui.position.x = 1;
+					 gui.position.z = -1;
+					 gui.rotation.y = -Math.PI/2.;
+                     scene.add( gui );
 			   	 }
 			   	 else if ( controller.gamepad.hand === 'right' ) {
 			   		 controller.add(controller2);
@@ -556,19 +533,6 @@
 			   	 controller.head = window.camera;
 				 var guiInputHelper = dat.GUIVR.addInputObject( controller ); //  Allow this controller to interact with DAT GUI.
 				 scene.add( guiInputHelper );
-
-				 controller.addEventListener( 'thumbstick axes changed', function( event ) {
-					 up = -event.axes[1]; // distance up on the thumbstick
-					 left = event.axes[0];
-					 event.target.getWorldDirection( direction ); // controller
-					 //console.log(direction);
-				 } );
-
-				 // controller.addEventListener( 'thumbstick axes changed', function( event ) {
-					//  var up = - event.axes[1];
-				 // } );
-				 //THREE.VRController.verbosity = 1;
-				 //THREE.VRController.inspect()
 		    });
 		}
 
@@ -579,17 +543,17 @@
             scene.add(world_objects);
 
 			var ambientLight = new THREE.AmbientLight( 0xFFFFFF );
-			world_objects.add( ambientLight );
+			scene.add( ambientLight );
 
             var light = new THREE.PointLight( 0xffffff, 1 );
 			light.position.set( - 2, 2, 5 );
-            world_objects.add( light );
+            scene.add( light );
 
             grid = new THREE.GridHelper( 100, 100, 0x000000, 0x000000 );
             // grid.material.depthTest = false;
             // grid.rotation.x = Math.PI/2.;
             grid.position.y = -params.H_stack + 0.01;
-            world_objects.add( grid );
+            scene.add( grid );
 
             var geometry = new THREE.PlaneGeometry( );//R, R, params.H_stack, 32 );
             var material = new THREE.MeshStandardMaterial( {color: 0xeeeeee, side: THREE.DoubleSide} );
@@ -598,7 +562,7 @@
             floor.rotation.x = Math.PI/2.;
             floor.position.y = -params.H_stack;
             floor.scale.set(2*X_max,2*X_max,1);
-            world_objects.add( floor );
+            scene.add( floor );
 
             var geometry = new THREE.PlaneGeometry( );//R, R, params.H_stack, 32 );
             var material = new THREE.MeshStandardMaterial( {color: 0xeeeeee, side: THREE.DoubleSide, opacity: 0.2, transparent: true} );
@@ -622,9 +586,8 @@
 
 
             if ( VR ) { // get good initial state
-				world_objects.position.x = -1;
                 world_objects.position.y = 2;
-                world_objects.position.z = 1;
+                world_objects.position.z = 5;
                 }
             else { camera.position.set( 2, 1, 3 ); }
 
@@ -647,17 +610,8 @@
 
 		function render() {
 			var deltaTime = clock.getDelta();
-			world_objects.position.x += up*deltaTime*direction.x;
-			world_objects.position.y += up*deltaTime*direction.y;
-			world_objects.position.z += up*deltaTime*direction.z;
-
-			// NOTE: need to do something clever here, don't have the brain power tonight
-			// world_objects.position.x += left*deltaTime*direction.z;
-			// world_objects.position.y += left*deltaTime*direction.x;
-			// world_objects.position.z += left*deltaTime*direction.y;
-
+            to_make = Math.floor(deltaTime*params.birth_rate);
             if ( particle_type === 'spheres' ) {
-            	to_make = Math.floor(deltaTime*params.birth_rate);
                 addParticleSphere(to_make);
                 moveParticlesSpheres( deltaTime );
                 cleanParticlesSpheres();
@@ -737,14 +691,6 @@
                     var dy = particles.children[i].v_y*dt;
                     particles.children[i].position.y += dy;
                     particles.children[i].T += -Gamma_dry_adb*dy/1000.; // particle cools adiabatically with adiabatic lapse rate
-                    // particles.children[i].scale.set()
-
-                    // // bounce off floor
-                    if ( particles.children[i].position.y < -params.H_stack ) {
-                        particles.children[i].position.y -= 1.5*(params.H_stack + particles.children[i].position.y); // put back in - little bit of dissipation to look nice
-                        particles.children[i].T = params.T_surf -params.Gamma*( particles.children[i].position.y+params.H_stack )/1000.;
-                        particles.children[i].v_y = 0;
-                    }
                     if ( params.colour_by === 'Relative Temp' ) {
                         particles.children[i].material.color = lut.getColor(particles.children[i].T - T_elevation);
                     }
@@ -754,6 +700,15 @@
                     else if ( params.colour_by === 'Vertical velocity' ) {
                         particles.children[i].material.color = lut.getColor(particles.children[i].v_y);
                     }
+
+                    // particles.children[i].scale.set()
+
+                    // // bounce off floor
+                    if ( particles.children[i].position.y < -params.H_stack ) {
+                        particles.children[i].position.y -= 1.5*(params.H_stack + particles.children[i].position.y); // put back in - little bit of dissipation to look nice
+                        particles.children[i].T = params.T_surf -params.Gamma*( particles.children[i].position.y+params.H_stack )/1000.;
+                        particles.children[i].v_y = 0;
+                    }
                 }
             }
         }
@@ -761,8 +716,7 @@
         function moveParticlesPoints( dt ) {
             var positions = particles.geometry.attributes.position.array;
             var colors = particles.geometry.attributes.color.array;
-            // console.log(colors);
-			// var scales = particles.geometry.attributes.scale.array;
+			var scales = particles.geometry.attributes.scale.array;
             var delta = Math.sqrt(2.*params.D*dt);
 
             if ( params.Dx ) {
@@ -774,16 +728,12 @@
                 var t = clock.getElapsedTime();
                 positions[ i*3 + 2] += (Math.random() - 0.5)*delta;
                 var dy = (Math.random() - 0.5)*delta;
-                if ( params.wind_type === 'Uniform' ) { u = params.u; }
-                else if ( params.wind_type === 'Boundary Layer' ) {
-                    u = params.u*Math.pow(Math.abs(params.H_stack + positions[i*3 + 1])/10.,0.143); // u = u_{10m}(z)*(z/10)^0.143
-                }
                 if ( params.turbulence ) {
-                    positions[ i*3 ] += u*dt*(1. + params.I*Math.cos((positions[ i*3 ] - u*t)/params.omega)*Math.sin(positions[ i*3 + 1 ]/params.omega));
-                    dy -= u*dt*params.I*Math.sin((positions[ i*3 ] - u*t)/params.omega)*Math.cos(positions[ i*3 + 1 ]/params.omega);
+                    positions[ i*3 ] += params.u*dt*(1. + params.I*Math.cos((positions[ i*3 ] - params.u*t)/params.omega)*Math.sin(positions[ i*3 + 1 ]/params.omega));
+                    dy -= params.u*dt*params.I*Math.sin((positions[ i*3 ] - params.u*t)/params.omega)*Math.cos(positions[ i*3 + 1 ]/params.omega);
                 }
                 else {
-                    positions[ i*3 ] += u*dt;
+                    positions[ i*3 ] += params.u*dt;
                 }
                 positions[ i*3 + 1] += dy;
                 T[i] += -Gamma_dry_adb*dy/1000.; // particle cools adiabatically with adiabatic lapse rate
@@ -812,21 +762,20 @@
                     var dy = v_y[i]*dt;
                     positions[ i*3 + 1 ] += dy;
                     T[i] += -Gamma_dry_adb*dy/1000.; // particle cools adiabatically with adiabatic lapse rate
+                    if ( params.colour_by === 'Relative Temp' ) { c = lut.getColor(T[i] - T_elevation); colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;}
+                    else if ( params.colour_by === 'Temp' ) { colors[i] = lut.getColor(T[i]); }
+                    else if ( params.colour_by === 'Vertical velocity' ) { colors[i] = lut.getColor(v_y[i]); }
                     if ( positions[ i*3 + 1 ] < -params.H_stack ) { // bounce off floor
                         positions[ i*3 + 1 ] -= 1.5*(params.H_stack + positions[ i*3 + 1 ]); // put back in - little bit of dissipation to look nice
-                        T[i] = params.T_surf ;//-params.Gamma*( positions[ i*3 + 1 ]+params.H_stack )/1000.;
+                        T[i] = params.T_surf -params.Gamma*( positions[ i*3 + 1 ]+params.H_stack )/1000.;
                         v_y[i] = 0;
                     }
-                    if ( params.colour_by === 'Relative Temp' ) { c = lut.getColor(T[i] - T_elevation);}
-                    else if ( params.colour_by === 'Temp' ) { c = lut.getColor(T[i]); }
-                    else if ( params.colour_by === 'Vertical velocity' ) { c = lut.getColor(v_y[i]); }
-
-                    colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+                    var P = 1e5*Math.exp(-positions[ i*3 + 1]/7000.);
+                    scales[i] = nR*T[i]/P;  // V = nRT/P;
                 }
             }
-
-
 			particles.geometry.attributes.position.needsUpdate = true;
+            particles.geometry.attributes.scale.needsUpdate = true;
 			particles.geometry.attributes.color.needsUpdate = true;
         }
 
