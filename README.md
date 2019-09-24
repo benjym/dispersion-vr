@@ -1,7 +1,7 @@
 # dispersion-vr
  Dispersion from ventilation stacks in VR
 
-[Click here](https://github.com/benjym/dispersion-vr) to try it out. For the VR version [click here instead](https://github.com/benjym/dispersion-vr?VR).
+[Click here](https://benjym.github.io/dispersion-vr/index.html) to try it out. For the VR version [click here instead](https://benjym.github.io/dispersion-vr/index.html?VR).
 
 ## What is going on?
 This is a simulator of what happens to *adiabatic* parcels of air as they are released from a ventilation stack.
