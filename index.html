@@ -90,7 +90,8 @@
 		    root_dir = 'https://benjym.github.io/dispersion-vr/';
 		}
 
-        var numParticles = 1;
+		var fly_speed = 2.; // how fast you can fly in VR
+//        var numParticles = 1;
         var D = 0.1; // diffusivity
         // var birth_rate = 100.; // how often to add a particle
         var u = 1.0; // wind velocity
@@ -736,14 +737,15 @@
 
 		function render() {
 			var deltaTime = clock.getDelta();
-			world_objects.position.x += up*deltaTime*direction.x;
-			world_objects.position.y += up*deltaTime*direction.y;
-			world_objects.position.z += up*deltaTime*direction.z;
+			world_objects.position.x += fly_speed*up*deltaTime*direction.x;
+			world_objects.position.y += fly_speed*up*deltaTime*direction.y;
+			world_objects.position.z += fly_speed*up*deltaTime*direction.z;
 
 			// NOTE: need to do something clever here, don't have the brain power tonight
-			// world_objects.position.x += left*deltaTime*direction.z;
-			// world_objects.position.y += left*deltaTime*direction.x;
-			// world_objects.position.z += left*deltaTime*direction.y;
+			// var left_direction = THREE.Vector3.crossVectors(direction,;
+			// world_objects.position.x += fly_speed*left*deltaTime*left_direction.x;
+			// world_objects.position.y += fly_speed*left*deltaTime*left_direction.y;
+			// world_objects.position.z += fly_speed*left*deltaTime*left_direction.z;
 
             moveParticles( deltaTime );
 			renderer.render( scene, camera );
