@@ -6,9 +6,9 @@ import { Matrix4 } from './Matrix4';
  * Implementation of a quaternion. This is used for rotating things without incurring in the dreaded gimbal lock issue, amongst other advantages.
  *
  * @example
- * var quaternion = new THREE.Quaternion();
+ * const quaternion = new THREE.Quaternion();
  * quaternion.setFromAxisAngle( new THREE.Vector3( 0, 1, 0 ), Math.PI / 2 );
- * var vector = new THREE.Vector3( 1, 0, 0 );
+ * const vector = new THREE.Vector3( 1, 0, 0 );
  * vector.applyQuaternion( quaternion );
  */
 export class Quaternion {
@@ -25,6 +25,7 @@ export class Quaternion {
 	y: number;
 	z: number;
 	w: number;
+	readonly isQuaternion: true;
 
 	/**
 	 * Sets values of this quaternion.
@@ -61,6 +62,8 @@ export class Quaternion {
 	angleTo( q: Quaternion ): number;
 	rotateTowards( q: Quaternion, step: number ): Quaternion;
 
+	identity(): Quaternion;
+
 	/**
 	 * Inverts this quaternion.
 	 */
@@ -94,11 +97,36 @@ export class Quaternion {
 
 	slerp( qb: Quaternion, t: number ): Quaternion;
 	equals( v: Quaternion ): boolean;
-	fromArray( n: number[] ): Quaternion;
-	toArray(): number[];
 
-	fromArray( xyzw: number[], offset?: number ): Quaternion;
-	toArray( xyzw?: number[], offset?: number ): number[];
+	/**
+	 * Sets this quaternion's x, y, z and w value from the provided array.
+	 * @param array the source array.
+	 * @param offset (optional) offset into the array. Default is 0.
+	 */
+	fromArray( array: number[], offset?: number ): this;
+
+	/**
+	 * Sets this quaternion's x, y, z and w value from the provided array-like.
+	 * @param array the source array-like.
+	 * @param offset (optional) offset into the array-like. Default is 0.
+	 */
+	fromArray( array: ArrayLike<number>, offset?: number ): this;
+
+	/**
+	 * Returns an array [x, y, z, w], or copies x, y, z and w into the provided array.
+	 * @param array (optional) array to store the quaternion to. If this is not provided, a new array will be created.
+	 * @param offset (optional) optional offset into the array.
+	 * @return The created or provided array.
+	 */
+	toArray( array?: number[], offset?: number ): number[];
+
+	/**
+	 * Copies x, y, z and w into the provided array-like.
+	 * @param array array-like to store the quaternion to.
+	 * @param offset (optional) optional offset into the array.
+	 * @return The provided array-like.
+	 */
+	toArray( array: ArrayLike<number>, offset?: number ): ArrayLike<number>;
 
 	_onChange( callback: Function ): Quaternion;
 	_onChangeCallback: Function;
@@ -122,6 +150,15 @@ export class Quaternion {
 		stcOffset1: number,
 		t: number
 	): Quaternion;
+
+	static multiplyQuaternionsFlat(
+		dst: number[],
+		dstOffset: number,
+		src0: number[],
+		srcOffset: number,
+		src1: number[],
+		stcOffset1: number
+	): number[];
 
 	/**
 	 * @deprecated Use {@link Vector#applyQuaternion vector.applyQuaternion( quaternion )} instead.

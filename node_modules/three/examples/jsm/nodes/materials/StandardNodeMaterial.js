@@ -1,7 +1,3 @@
-/**
- * @author sunag / http://www.sunag.com.br/
- */
-
 import { StandardNode } from './nodes/StandardNode.js';
 import { NodeMaterial } from './NodeMaterial.js';
 import { NodeUtils } from '../core/NodeUtils.js';
@@ -25,8 +21,9 @@ NodeUtils.addShortcuts( StandardNodeMaterial.prototype, 'fragment', [
 	'roughness',
 	'metalness',
 	'reflectivity',
-	'clearCoat',
-	'clearCoatRoughness',
+	'clearcoat',
+	'clearcoatRoughness',
+	'clearcoatNormal',
 	'normal',
 	'emissive',
 	'ambient',
@@ -35,7 +32,8 @@ NodeUtils.addShortcuts( StandardNodeMaterial.prototype, 'fragment', [
 	'ao',
 	'environment',
 	'mask',
-	'position'
+	'position',
+	'sheen'
 ] );
 
 export { StandardNodeMaterial };

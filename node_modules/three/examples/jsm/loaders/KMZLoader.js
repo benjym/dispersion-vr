@@ -1,22 +1,19 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- */
-
 import {
-	DefaultLoadingManager,
 	FileLoader,
 	Group,
+	Loader,
 	LoadingManager
 } from "../../../build/three.module.js";
 import { ColladaLoader } from "../loaders/ColladaLoader.js";
+import { JSZip } from "../libs/jszip.module.min.js";
 
 var KMZLoader = function ( manager ) {
 
-	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+	Loader.call( this, manager );
 
 };
 
-KMZLoader.prototype = {
+KMZLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 	constructor: KMZLoader,
 
@@ -27,18 +24,30 @@ KMZLoader.prototype = {
 		var loader = new FileLoader( scope.manager );
 		loader.setPath( scope.path );
 		loader.setResponseType( 'arraybuffer' );
+		loader.setRequestHeader( scope.requestHeader );
 		loader.load( url, function ( text ) {
 
-			onLoad( scope.parse( text ) );
+			try {
+
+				onLoad( scope.parse( text ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
-
-	},
-
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
 
 	},
 
@@ -78,7 +87,7 @@ KMZLoader.prototype = {
 
 		//
 
-		var zip = new JSZip( data ); // eslint-disable-line no-undef
+		var zip = new JSZip( data );
 
 		if ( zip.files[ 'doc.kml' ] ) {
 
@@ -117,6 +126,6 @@ KMZLoader.prototype = {
 
 	}
 
-};
+} );
 
 export { KMZLoader };

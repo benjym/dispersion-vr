@@ -1,7 +1,3 @@
-/**
- * @author sunag / http://www.sunag.com.br/
- */
-
 import { InputNode } from '../core/InputNode.js';
 import { ReflectNode } from '../accessors/ReflectNode.js';
 import { ColorSpaceNode } from '../utils/ColorSpaceNode.js';
@@ -41,7 +37,7 @@ CubeTextureNode.prototype.generate = function ( builder, output ) {
 
 	if ( bias === undefined && builder.context.bias ) {
 
-		bias = new builder.context.bias( this ).build( builder, 'f' );
+		bias = builder.context.bias.setTexture( this ).build( builder, 'f' );
 
 	}
 

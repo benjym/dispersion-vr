@@ -7,9 +7,19 @@ a wide variety of GPU texture compression formats.
 
 [GitHub](https://github.com/BinomialLLC/basis_universal)
 
-## Contents
+## Transcoders
 
-This folder contains two files:
+Basis Universal texture data may be used in two different file formats:
+`.basis` and `.ktx2`. Texture data is identical in both cases, but different
+transcoders are required to read the two file types. Both transcoders are
+available in this folder now, but they may be merged in the future.
+
+For further documentation about the Basis compressor and transcoder, refer to
+the [Basis GitHub repository](https://github.com/BinomialLLC/basis_universal).
+
+### .basis
+
+The folder contains two files required for transcoding `.basis` textures:
 
 * `basis_transcoder.js` — JavaScript wrapper for the WebAssembly transcoder.
 * `basis_transcoder.wasm` — WebAssembly transcoder.
@@ -35,8 +45,17 @@ basisLoader.load( 'diffuse.basis', function ( texture ) {
 } );
 ```
 
-For further documentation about the Basis compressor and transcoder, refer to
-the [Basis GitHub repository](https://github.com/BinomialLLC/basis_universal). The JavaScript wrapper requires one modification from the version provided in the Basis repository – the declaration on the first line is changed from `var Module` to `Module`, to accomodate lazy initialization in a Web Worker ([details](https://github.com/mrdoob/three.js/issues/16524)).
+### .ktx2
+
+The folder contains two files required for transcoding `.ktx2` textures:
+
+* `msc_basis_transcoder.js` — JavaScript wrapper for the WebAssembly transcoder.
+* `msc_basis_transcoder.wasm` — WebAssembly transcoder.
+
+Currently, the `msc_basis_transcoder.js` file must be added to the page as a
+global script. The WASM transcoder will be downloaded from the same directory
+automatically. These will likely be replaced with ES modules, and merged with
+the `.basis` transcoder, in the future. See `KTX2Loader` for usage.
 
 ## License
 

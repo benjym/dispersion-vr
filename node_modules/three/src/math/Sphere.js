@@ -1,17 +1,12 @@
 import { Box3 } from './Box3.js';
 import { Vector3 } from './Vector3.js';
 
-/**
- * @author bhouston / http://clara.io
- * @author mrdoob / http://mrdoob.com/
- */
-
-var _box;
+const _box = new Box3();
 
 function Sphere( center, radius ) {
 
 	this.center = ( center !== undefined ) ? center : new Vector3();
-	this.radius = ( radius !== undefined ) ? radius : 0;
+	this.radius = ( radius !== undefined ) ? radius : - 1;
 
 }
 
@@ -28,9 +23,7 @@ Object.assign( Sphere.prototype, {
 
 	setFromPoints: function ( points, optionalCenter ) {
 
-		if ( _box === undefined ) _box = new Box3();
-
-		var center = this.center;
+		const center = this.center;
 
 		if ( optionalCenter !== undefined ) {
 
@@ -42,9 +35,9 @@ Object.assign( Sphere.prototype, {
 
 		}
 
-		var maxRadiusSq = 0;
+		let maxRadiusSq = 0;
 
-		for ( var i = 0, il = points.length; i < il; i ++ ) {
+		for ( let i = 0, il = points.length; i < il; i ++ ) {
 
 			maxRadiusSq = Math.max( maxRadiusSq, center.distanceToSquared( points[ i ] ) );
 
@@ -71,9 +64,18 @@ Object.assign( Sphere.prototype, {
 
 	},
 
-	empty: function () {
+	isEmpty: function () {
 
-		return ( this.radius <= 0 );
+		return ( this.radius < 0 );
+
+	},
+
+	makeEmpty: function () {
+
+		this.center.set( 0, 0, 0 );
+		this.radius = - 1;
+
+		return this;
 
 	},
 
@@ -91,7 +93,7 @@ Object.assign( Sphere.prototype, {
 
 	intersectsSphere: function ( sphere ) {
 
-		var radiusSum = this.radius + sphere.radius;
+		const radiusSum = this.radius + sphere.radius;
 
 		return sphere.center.distanceToSquared( this.center ) <= ( radiusSum * radiusSum );
 
@@ -111,7 +113,7 @@ Object.assign( Sphere.prototype, {
 
 	clampPoint: function ( point, target ) {
 
-		var deltaLengthSq = this.center.distanceToSquared( point );
+		const deltaLengthSq = this.center.distanceToSquared( point );
 
 		if ( target === undefined ) {
 
@@ -139,6 +141,14 @@ Object.assign( Sphere.prototype, {
 
 			console.warn( 'THREE.Sphere: .getBoundingBox() target is now required' );
 			target = new Box3();
+
+		}
+
+		if ( this.isEmpty() ) {
+
+			// Empty sphere produces empty bounding box
+			target.makeEmpty();
+			return target;
 
 		}
 

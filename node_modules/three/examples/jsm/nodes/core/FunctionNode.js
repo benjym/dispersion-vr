@@ -1,17 +1,13 @@
-/**
- * @author sunag / http://www.sunag.com.br/
- * @thanks bhouston / https://clara.io/
- */
-
 import { TempNode } from './TempNode.js';
 import { NodeLib } from './NodeLib.js';
 
-var declarationRegexp = /^([a-z_0-9]+)\s([a-z_0-9]+)\s*\((.*?)\)/i,
+var declarationRegexp = /^\s*([a-z_0-9]+)\s([a-z_0-9]+)\s*\((.*?)\)/i,
 	propertiesRegexp = /[a-z_0-9]+/ig;
 
 function FunctionNode( src, includes, extensions, keywords, type ) {
 
 	this.isMethod = type === undefined;
+	this.isInterface = false;
 
 	TempNode.call( this, type );
 
@@ -139,7 +135,11 @@ FunctionNode.prototype.generate = function ( builder, output ) {
 
 	} else if ( this.isMethod ) {
 
-		builder.include( this, false, src );
+		if ( ! this.isInterface ) {
+
+			builder.include( this, false, src );
+
+		}
 
 		return this.name;
 
@@ -181,7 +181,7 @@ FunctionNode.prototype.parse = function ( src, includes, extensions, keywords ) 
 					var qualifier = inputs[ i ++ ];
 					var type, name;
 
-					if ( qualifier == 'in' || qualifier == 'out' || qualifier == 'inout' ) {
+					if ( qualifier === 'in' || qualifier === 'out' || qualifier === 'inout' ) {
 
 						type = inputs[ i ++ ];
 
@@ -203,6 +203,8 @@ FunctionNode.prototype.parse = function ( src, includes, extensions, keywords ) 
 				}
 
 			}
+
+			this.isInterface = this.src.indexOf( '{' ) === - 1;
 
 		} else {
 

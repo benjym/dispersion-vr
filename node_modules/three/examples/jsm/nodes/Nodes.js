@@ -59,12 +59,6 @@ export { CondNode } from './math/CondNode.js';
 export { NoiseNode } from './procedural/NoiseNode.js';
 export { CheckerNode } from './procedural/CheckerNode.js';
 
-// bsdfs
-
-export { BlinnShininessExponentNode } from './bsdfs/BlinnShininessExponentNode.js';
-export { BlinnExponentToRoughnessNode } from './bsdfs/BlinnExponentToRoughnessNode.js';
-export { RoughnessToBlinnExponentNode } from './bsdfs/RoughnessToBlinnExponentNode.js';
-
 // misc
 
 export { TextureCubeUVNode } from './misc/TextureCubeUVNode.js';
@@ -81,7 +75,9 @@ export { TimerNode } from './utils/TimerNode.js';
 export { VelocityNode } from './utils/VelocityNode.js';
 export { UVTransformNode } from './utils/UVTransformNode.js';
 export { MaxMIPLevelNode } from './utils/MaxMIPLevelNode.js';
+export { SpecularMIPLevelNode } from './utils/SpecularMIPLevelNode.js';
 export { ColorSpaceNode } from './utils/ColorSpaceNode.js';
+export { SubSlotNode } from './utils/SubSlotNode.js';
 
 // effects
 
@@ -92,6 +88,7 @@ export { LuminanceNode } from './effects/LuminanceNode.js';
 // material nodes
 
 export { RawNode } from './materials/nodes/RawNode.js';
+export { BasicNode } from './materials/nodes/BasicNode.js';
 export { SpriteNode } from './materials/nodes/SpriteNode.js';
 export { PhongNode } from './materials/nodes/PhongNode.js';
 export { StandardNode } from './materials/nodes/StandardNode.js';
@@ -100,6 +97,7 @@ export { MeshStandardNode } from './materials/nodes/MeshStandardNode.js';
 // materials
 
 export { NodeMaterial } from './materials/NodeMaterial.js';
+export { BasicNodeMaterial } from './materials/BasicNodeMaterial.js';
 export { SpriteNodeMaterial } from './materials/SpriteNodeMaterial.js';
 export { PhongNodeMaterial } from './materials/PhongNodeMaterial.js';
 export { StandardNodeMaterial } from './materials/StandardNodeMaterial.js';

@@ -3,12 +3,6 @@ import { Vector3 } from './Vector3';
 import { Plane } from './Plane';
 import { Box3 } from './Box3';
 
-export interface SplineControlPoint {
-	x: number;
-	y: number;
-	z: number;
-}
-
 export class Triangle {
 
 	constructor( a?: Vector3, b?: Vector3, c?: Vector3 );
@@ -29,7 +23,7 @@ export class Triangle {
 	getArea(): number;
 	getMidpoint( target: Vector3 ): Vector3;
 	getNormal( target: Vector3 ): Vector3;
-	getPlane( target: Vector3 ): Plane;
+	getPlane( target: Plane ): Plane;
 	getBarycoord( point: Vector3, target: Vector3 ): Vector3;
 	getUV( point: Vector3, uv1: Vector2, uv2: Vector2, uv3: Vector2, target: Vector2 ): Vector2;
 	containsPoint( point: Vector3 ): boolean;

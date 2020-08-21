@@ -1,14 +1,12 @@
-/**
- * @author Kevin Chapelier / https://github.com/kchapelier
- * See https://github.com/kchapelier/PRWM for more informations about this file format
- */
-
 import {
 	BufferAttribute,
 	BufferGeometry,
-	DefaultLoadingManager,
-	FileLoader
+	FileLoader,
+	Loader
 } from "../../../build/three.module.js";
+/**
+ * See https://github.com/kchapelier/PRWM for more informations about this file format
+ */
 
 var PRWMLoader = ( function () {
 
@@ -231,11 +229,11 @@ var PRWMLoader = ( function () {
 
 	function PRWMLoader( manager ) {
 
-		this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+		Loader.call( this, manager );
 
 	}
 
-	PRWMLoader.prototype = {
+	PRWMLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		constructor: PRWMLoader,
 
@@ -246,21 +244,33 @@ var PRWMLoader = ( function () {
 			var loader = new FileLoader( scope.manager );
 			loader.setPath( scope.path );
 			loader.setResponseType( 'arraybuffer' );
+			loader.setRequestHeader( scope.requestHeader );
 
 			url = url.replace( /\*/g, isBigEndianPlatform() ? 'be' : 'le' );
 
 			loader.load( url, function ( arrayBuffer ) {
 
-				onLoad( scope.parse( arrayBuffer ) );
+				try {
+
+					onLoad( scope.parse( arrayBuffer ) );
+
+				} catch ( e ) {
+
+					if ( onError ) {
+
+						onError( e );
+
+					} else {
+
+						console.error( e );
+
+					}
+
+					scope.manager.itemError( url );
+
+				}
 
 			}, onProgress, onError );
-
-		},
-
-		setPath: function ( value ) {
-
-			this.path = value;
-			return this;
 
 		},
 
@@ -275,7 +285,7 @@ var PRWMLoader = ( function () {
 			for ( i = 0; i < attributesKey.length; i ++ ) {
 
 				attribute = data.attributes[ attributesKey[ i ] ];
-				bufferGeometry.addAttribute( attributesKey[ i ], new BufferAttribute( attribute.values, attribute.cardinality, attribute.normalized ) );
+				bufferGeometry.setAttribute( attributesKey[ i ], new BufferAttribute( attribute.values, attribute.cardinality, attribute.normalized ) );
 
 			}
 
@@ -289,7 +299,7 @@ var PRWMLoader = ( function () {
 
 		}
 
-	};
+	} );
 
 	PRWMLoader.isBigEndianPlatform = function () {
 

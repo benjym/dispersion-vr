@@ -1,14 +1,11 @@
+import {
+	Vector2
+} from "../../../build/three.module.js";
 /**
- * @author alteredq / http://alteredqualia.com/
- *
  * Convolution shader
  * ported from o3d sample to WebGL / GLSL
  * http://o3d.googlecode.com/svn/trunk/samples/convolution.html
  */
-
-import {
-	Vector2
-} from "../../../build/three.module.js";
 
 var ConvolutionShader = {
 
@@ -35,8 +32,8 @@ var ConvolutionShader = {
 
 		"void main() {",
 
-			"vUv = uv - ( ( KERNEL_SIZE_FLOAT - 1.0 ) / 2.0 ) * uImageIncrement;",
-			"gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+		"	vUv = uv - ( ( KERNEL_SIZE_FLOAT - 1.0 ) / 2.0 ) * uImageIncrement;",
+		"	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
 
 		"}"
 
@@ -53,17 +50,17 @@ var ConvolutionShader = {
 
 		"void main() {",
 
-			"vec2 imageCoord = vUv;",
-			"vec4 sum = vec4( 0.0, 0.0, 0.0, 0.0 );",
+		"	vec2 imageCoord = vUv;",
+		"	vec4 sum = vec4( 0.0, 0.0, 0.0, 0.0 );",
 
-			"for( int i = 0; i < KERNEL_SIZE_INT; i ++ ) {",
+		"	for( int i = 0; i < KERNEL_SIZE_INT; i ++ ) {",
 
-				"sum += texture2D( tDiffuse, imageCoord ) * cKernel[ i ];",
-				"imageCoord += uImageIncrement;",
+		"		sum += texture2D( tDiffuse, imageCoord ) * cKernel[ i ];",
+		"		imageCoord += uImageIncrement;",
 
-			"}",
+		"	}",
 
-			"gl_FragColor = sum;",
+		"	gl_FragColor = sum;",
 
 		"}"
 

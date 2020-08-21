@@ -1,5 +1,4 @@
 /**
- * @author Kai Salmen / https://kaisalmen.de
  * Development repository: https://github.com/kaisalmen/WWOBJLoader
  */
 
@@ -17,7 +16,7 @@ const MtlObjBridge = {
 
 		if ( typeof assetLoader.addMaterials === 'function' ) {
 
-			assetLoader.addMaterials( this.addMaterialsFromMtlLoader( processResult ) );
+			assetLoader.addMaterials( this.addMaterialsFromMtlLoader( processResult ), true );
 
 		}
 
@@ -31,12 +30,14 @@ const MtlObjBridge = {
 	addMaterialsFromMtlLoader: function ( materialCreator ) {
 
 		let newMaterials = {};
+
 		if ( materialCreator instanceof MTLLoader.MaterialCreator ) {
 
 			materialCreator.preload();
 			newMaterials = materialCreator.materials;
 
 		}
+
 		return newMaterials;
 
 	}
