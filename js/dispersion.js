@@ -4,7 +4,7 @@ import { MTLLoader } from "../node_modules/three/examples/jsm/loaders/MTLLoader.
 import { OrbitControls } from "../node_modules/three/examples/jsm/controls/OrbitControls.js";
 import { Lut } from "../node_modules/three/examples/jsm/math/Lut.js";
 import { VRController } from "../js/VRControllerModule.js";
-import * as dat from "../js/datguivrModule.js";
+// import * as dat from "../js/datguivrModule.js";
 
 var camera, controls, scene, renderer, dolly, gui;
 var up = 0;
@@ -20,7 +20,8 @@ var world_objects = new THREE.Group;
 var controller, controller1, controller2;
 var temp_scale;
 var adiab_line, vert_cone, horiz_cone;
-
+var red = 0xFF1111;
+var white = 0xffffff;
 var vive = false; // if false, use oculus instead
 // diffusion parameters
 var params = {'D': 0.01, 'birth_rate':100., 'u':1.0,
@@ -127,7 +128,7 @@ function add_temp_axes() {
 
     var H = params.H_stack + 20;
     var geometry = new THREE.CylinderGeometry( 0.1, 0.1, 1, 32 );
-    var material = new THREE.MeshStandardMaterial( {color: 0xFFFFFF } );
+    var material = new THREE.MeshStandardMaterial( {color: white } );
     vert_axis = new THREE.Mesh( geometry, material );
     vert_axis.scale.y = 3.;
     vert_axis.position.y = 3./2.-params.H_stack;
@@ -156,7 +157,7 @@ function add_temp_axes() {
     top_temp_line.visible = params.inversion_layer;
 
     var geometry = new THREE.CylinderGeometry( 0.05, 0.05, 1, 32 );
-    var material = new THREE.MeshStandardMaterial( {color: 0x444444 } );
+    var material = new THREE.MeshStandardMaterial( {color: red } );
     adiab_line = new THREE.Mesh( geometry, material );
     adiab_line.scale.y = H;
     adiab_line.position.y = H/2.-params.H_stack;
@@ -166,14 +167,14 @@ function add_temp_axes() {
     rotateAboutPoint(adiab_line,new THREE.Vector3(0,-2,-2-params.T_surf/temp_scale), new THREE.Vector3(1,0,0), rot_angle, false);
 
     var geometry = new THREE.CylinderGeometry( 0., 0.2, 1, 32 );
-    var material = new THREE.MeshStandardMaterial( {color: 0xFFFFFF } );
+    var material = new THREE.MeshStandardMaterial( {color: white } );
     vert_cone = new THREE.Mesh( geometry, material );
     vert_cone.scale.y = 0.2;
     vert_cone.position.y = 2.5-params.H_stack;
     vert_axis.add( vert_cone );
 
     var geometry = new THREE.CylinderGeometry( 0.2, 0., 1, 32 );
-    var material = new THREE.MeshStandardMaterial( {color: 0xFFFFFF } );
+    var material = new THREE.MeshStandardMaterial( {color: white } );
     horiz_cone = new THREE.Mesh( geometry, material );
     horiz_cone.scale.y = 0.2;
     // horiz_cone.position.y = 2.5-params.H_stack;
@@ -213,7 +214,7 @@ function add_temp_axes() {
         z_label.scale.x = 2.;
 
         var geometry = new THREE.TextBufferGeometry( "Adiabatic lapse", { font: font, size: fontsize, height: fontsize/5. } );
-        var material = new THREE.MeshStandardMaterial( { color: 0x444444 } );
+        var material = new THREE.MeshStandardMaterial( { color: red } );
         var ALR_label = new THREE.Mesh( geometry, material );
         ALR_label.rotation.x = -Math.PI/2.;
         ALR_label.rotation.z = Math.PI/2.;
@@ -551,10 +552,10 @@ function init() {
     scene = new THREE.Scene();
     scene.add(world_objects);
 
-    var ambientLight = new THREE.AmbientLight( 0xFFFFFF );
+    var ambientLight = new THREE.AmbientLight( 0xFFFFFF, 0.5 );
     world_objects.add( ambientLight );
 
-    var light = new THREE.PointLight( 0xffffff, 1 );
+    var light = new THREE.PointLight( 0xffffff, 0.5 );
     light.position.set( - 2, 2, 5 );
     world_objects.add( light );
 
