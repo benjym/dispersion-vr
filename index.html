@@ -192,7 +192,7 @@
             top_temp_line.visible = params.inversion_layer;
 
             var geometry = new THREE.CylinderGeometry( 0.05, 0.05, 1, 32 );
-            var material = new THREE.MeshStandardMaterial( {color: 0x444444 } );
+            var material = new THREE.MeshStandardMaterial( {color: 0xFF0000 } );
             adiab_line = new THREE.Mesh( geometry, material );
             adiab_line.scale.y = H;
             adiab_line.position.y = H/2.-params.H_stack;
@@ -249,7 +249,7 @@
                 z_label.scale.x = 2.;
 
                 var geometry = new THREE.TextBufferGeometry( "Adiabatic lapse", { font: font, size: fontsize, height: fontsize/5. } );
-                var material = new THREE.MeshStandardMaterial( { color: 0x444444 } );
+                var material = new THREE.MeshStandardMaterial( { color: 0xFF0000 } );
                 var ALR_label = new THREE.Mesh( geometry, material );
                 ALR_label.rotation.x = -Math.PI/2.;
                 ALR_label.rotation.z = Math.PI/2.;
