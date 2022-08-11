@@ -1,0 +1,32 @@
+{
+  "name": "dispersion-vr",
+  "version": "1.0.0",
+  "description": "Desktop and VR environment to explore dispersion of contaminants in a boundary layer wind",
+  "main": "index.html",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "three": "^0.107.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjym/dispersion-vr.git"
+  },
+  "keywords": [
+    "Dispersion",
+    "Virtual",
+    "Reality",
+    "Air",
+    "Pollution"
+  ],
+  "author": "Benjy Marks",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/benjym/dispersion-vr/issues"
+  },
+  "homepage": "https://github.com/benjym/dispersion-vr#readme"
+}
