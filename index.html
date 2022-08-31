@@ -170,7 +170,7 @@
             vert_axis.position.z = -2.;
             world_objects.add( vert_axis );
 
-            temp_scale = 5.; // m/deg C
+            temp_scale = 2; // m/deg C
             horiz_axis = new THREE.Mesh( geometry, material );
             horiz_axis.scale.y = params.T_surf/temp_scale;
             horiz_axis.position.y = -params.H_stack;
