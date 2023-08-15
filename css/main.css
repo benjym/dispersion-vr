@@ -1,0 +1,9 @@
+body {
+    margin: 0px;
+    overflow: hidden;
+}
+
+.lil-gui {
+	--number-color: #fc2eff;
+    --string-color: #fc2eff;
+}

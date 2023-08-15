@@ -1,0 +1,1 @@
+Installed updated version of datguivr that works with webxr from https://github.com/xinaesthete/dat.guiVR
