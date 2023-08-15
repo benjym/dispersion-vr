@@ -20,6 +20,6 @@ var CustomShader = new ShaderMaterial({
         "}",
     ].join("\n"),
 });
-CustomShader.vertexColors = True;
+CustomShader.vertexColors = true;
 
 export { CustomShader };

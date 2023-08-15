@@ -1,12 +1,17 @@
 import css from "../css/main.css";
+import map from "./datguivr.map";
 
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { Lut } from 'three/examples/jsm/math/Lut.js';
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { CustomShader } from "./shaders.js";
 import * as CONTROLLERS from './controllers.js';
+import * as DAT from "./datguivr.min.js";
+// console.log(DAT)
 
 var camera, controls, scene, renderer, dolly, gui;
 var up = 0;
@@ -14,11 +19,16 @@ var left = 0;
 var direction = new THREE.Vector3; // controller properties
 direction.x = 0; direction.y = 0; direction.z = 0;
 var clock = new THREE.Clock();
-var lut = new THREE.Lut("cooltowarm", 512); // options are rainbow, cooltowarm and blackbody
+var lut = new Lut("cooltowarm", 512); // options are rainbow, cooltowarm and blackbody
 var floor, stack, grid, inversion_layer
 var vert_axis, horiz_axis, temp_line, top_temp_line;
 var particles = new THREE.Group;
 var world_objects = new THREE.Group;
+var y_offset;
+var VR;
+var temp_scale = 5.; // m/deg C
+var adiab_line;
+// const container = document.getElementById('container');
 
 var vive = false; // if false, use oculus instead
 // diffusion parameters
@@ -36,12 +46,12 @@ lut.setMin(params.cmin);
 lut.setMax(params.cmax);
 
 var urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('VR')) {
-    var VR = true;
+if (urlParams.has('VR') || urlParams.has('vr')) {
+    VR = true;
     y_offset = 2; // vertical offset to get camera at right height
 }
 else {
-    var VR = false;
+    VR = false;
     y_offset = 0;
 }
 
@@ -71,7 +81,8 @@ var positions = new Float32Array(N_max * 3);
 var T = new Float32Array(N_max);
 var v_y = new Float32Array(N_max);
 // var H = 5; // height of temperature lines
-const presets = { 'Presets': ['Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping'] };
+// const presets = { 'Presets': ['Looping', 'Coning', 'Fanning', 'Lofting', 'Fumigation', 'Trapping'] };
+const presets = {'Presets' : 'Choose one'}
 var preset_settings = [ // FIXME - THESE ARE ALL WRONG!!!!
     { 'Presets': 'Looping', 'u': 0.5, 'H_stack': 10, 'Gamma': 200, 'Gamma_inv': 200, 'T_stack': 0, 'inversion_layer': false, 'turbulence': true }, // strong lapse condition
     { 'Presets': 'Coning', 'u': 0.5, 'H_stack': 10, 'Gamma': 1, 'Gamma_inv': 0, 'T_stack': 0, 'inversion_layer': false, 'turbulence': false }, // weak lapse condition
@@ -86,10 +97,11 @@ var colour_options = false;
 
 init();
 add_renderer();
-add_controllers();
+// add_controllers();
 add_temp_axes();
 if (VR) {
-    gui = dat.GUIVR.create('Parameters');
+    console.log(DAT)
+    gui = DAT.create('Parameters');
     add_gui();
     gui.position.x = 2;
     gui.position.z = -2;
@@ -98,7 +110,7 @@ if (VR) {
     scene.add(gui);
 }
 else {
-    gui = new dat.GUI({ width: 500 });
+    gui = new GUI({ width: 400 });
     add_gui();
 }
 add_particles();
@@ -134,7 +146,6 @@ function add_temp_axes() {
     vert_axis.position.z = -2.;
     world_objects.add(vert_axis);
 
-    temp_scale = 5.; // m/deg C
     horiz_axis = new THREE.Mesh(geometry, material);
     horiz_axis.scale.y = params.T_surf / temp_scale;
     horiz_axis.position.y = -params.H_stack;
@@ -167,25 +178,25 @@ function add_temp_axes() {
 
     var geometry = new THREE.CylinderGeometry(0., 0.2, 1, 32);
     var material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
-    vert_cone = new THREE.Mesh(geometry, material);
+    var vert_cone = new THREE.Mesh(geometry, material);
     vert_cone.scale.y = 0.2;
     vert_cone.position.y = 2.5 - params.H_stack;
     vert_axis.add(vert_cone);
 
     var geometry = new THREE.CylinderGeometry(0.2, 0., 1, 32);
     var material = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
-    horiz_cone = new THREE.Mesh(geometry, material);
+    var horiz_cone = new THREE.Mesh(geometry, material);
     horiz_cone.scale.y = 0.2;
     // horiz_cone.position.y = 2.5-params.H_stack;
     // horiz_cone.rotation.x = Math.PI/2;
     horiz_cone.position.y = - params.T_surf / temp_scale / 8.;
     horiz_axis.add(horiz_cone);
 
-    var font_loader = new THREE.FontLoader();
+    var font_loader = new FontLoader();
     font_loader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', function (font) {
         // font_loader.load( root_dir + 'node_modules/three/examples/fonts/helvetiker_bold.typeface.json', function ( font ) {
         var fontsize = 0.25;
-        var geometry = new THREE.TextBufferGeometry("Temperature", { font: font, size: fontsize, height: fontsize / 5. });
+        var geometry = new TextGeometry("Temperature", { font: font, size: fontsize, height: fontsize / 5. });
         var material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
         var temp_label = new THREE.Mesh(geometry, material);
         temp_label.rotation.x = -Math.PI / 2.;
@@ -194,7 +205,7 @@ function add_temp_axes() {
         temp_label.position.y = 4.0;
         horiz_cone.add(temp_label);
 
-        var geometry = new THREE.TextBufferGeometry("Environmental lapse", { font: font, size: fontsize, height: fontsize / 5. });
+        var geometry = new TextGeometry("Environmental lapse", { font: font, size: fontsize, height: fontsize / 5. });
         var material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
         var curr_label = new THREE.Mesh(geometry, material);
         curr_label.rotation.x = -Math.PI / 2.;
@@ -204,7 +215,7 @@ function add_temp_axes() {
         curr_label.position.y = 0.6;
         horiz_cone.add(curr_label);
 
-        var geometry = new THREE.TextBufferGeometry("Altitude", { font: font, size: fontsize, height: fontsize / 5. });
+        var geometry = new TextGeometry("Altitude", { font: font, size: fontsize, height: fontsize / 5. });
         var z_label = new THREE.Mesh(geometry, material);
         z_label.position.x = -0.3;
         z_label.position.y = -2.5;
@@ -212,7 +223,7 @@ function add_temp_axes() {
         vert_cone.add(z_label);
         z_label.scale.x = 2.;
 
-        var geometry = new THREE.TextBufferGeometry("Adiabatic lapse", { font: font, size: fontsize, height: fontsize / 5. });
+        var geometry = new TextGeometry("Adiabatic lapse", { font: font, size: fontsize, height: fontsize / 5. });
         var material = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
         var ALR_label = new THREE.Mesh(geometry, material);
         ALR_label.rotation.x = -Math.PI / 2.;
@@ -323,9 +334,9 @@ function add_particles() {
         colors.push(1, 1, 1);
     }
     var geometry = new THREE.BufferGeometry();
-    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.addAttribute('scale', new THREE.BufferAttribute(scales, 1));
-    geometry.addAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('scale', new THREE.BufferAttribute(scales, 1));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
     // var material = new THREE.ShaderMaterial({
     //     vertexShader: document.getElementById('vertexshader').textContent,
@@ -391,13 +402,13 @@ function add_gui() {
 }
 
 function set_from_presets() {
-    for (i = 0; i < preset_settings.length; i++) {
+    for (var i = 0; i < preset_settings.length; i++) {
         //console.log(presets.Presets)
         //console.log(preset_settings[i].Presets)
         if (presets.Presets === preset_settings[i].Presets) {
             var keys = Object.keys(preset_settings[i]);
             var values = Object.values(preset_settings[i])
-            for (j = 0; j < keys.length; j++) {
+            for (var j = 0; j < keys.length; j++) {
                 params[keys[j]] = values[j];
             }
 
@@ -415,13 +426,13 @@ function add_renderer() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
-    if (VR) {
+    document.body.appendChild(renderer.domElement);
+    if ( VR ) {
         renderer.xr.enabled = true;
-        container.appendChild(VRButton.createButton(renderer));
+        document.body.appendChild(VRButton.createButton(renderer));
     }
     else {
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(2, 0, 0);
         controls.update();
     }
@@ -542,16 +553,15 @@ function add_renderer() {
 // }
 
 function init() {
-    container = document.getElementById('container');
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
     scene = new THREE.Scene();
     scene.add(world_objects);
 
-    var ambientLight = new THREE.AmbientLight(0xFFFFFF);
+    var ambientLight = new THREE.AmbientLight(0xaaaaaa);
     world_objects.add(ambientLight);
 
-    var light = new THREE.PointLight(0xffffff, 1);
-    light.position.set(- 2, 2, 5);
+    var light = new THREE.PointLight(0xaaaaaa, 5000);
+    light.position.set(5, 20, 5);
     world_objects.add(light);
 
     grid = new THREE.GridHelper(100, 100, 0x000000, 0x000000);
@@ -662,6 +672,7 @@ function moveParticles(dt) {
                 T[i] = params.T_surf;//-params.Gamma*( positions[ i*3 + 1 ]+params.H_stack )/1000.;
                 v_y[i] = 0;
             }
+            let c;
             if (params.colour_by === 'Relative Temp') { c = lut.getColor(T[i] - T_elevation); }
             else if (params.colour_by === 'Temp') { c = lut.getColor(T[i]); }
             else if (params.colour_by === 'Vertical velocity') { c = lut.getColor(v_y[i]); }
@@ -708,5 +719,6 @@ function render() {
     // world_objects.position.z += fly_speed*left*deltaTime*left_direction.z;
 
     moveParticles(deltaTime);
+    if ( controls !== undefined ) { controls.update(); }
     renderer.render(scene, camera);
 }
